@@ -4,6 +4,7 @@
  */
 html {
   box-sizing: border-box;
+  -webkit-app-region: drag;
 }
 *, *:before, *:after {
   box-sizing: inherit;

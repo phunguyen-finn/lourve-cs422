@@ -13,9 +13,6 @@ import log from 'electron-log';
 import { spawn } from 'child_process';
 import { resolveHtmlPath } from './util';
 import path from 'path';
-import { Howl } from 'howler';
-import fs from 'fs';
-import player from 'sound-play';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -23,10 +20,6 @@ let tray: Tray | null = null;
 const SOURCE_PATH = app.isPackaged
 ? path.join(process.resourcesPath)
 : path.join(__dirname, '../../');
-
-var sleepSound = new Howl({
-  src: [path.join(SOURCE_PATH, 'assets', 'sleep.mp3')]
-});
 
 const child = spawn('node', [path.join(SOURCE_PATH, 'src', 'main', 'background-listener', 'index.js')]);
 
