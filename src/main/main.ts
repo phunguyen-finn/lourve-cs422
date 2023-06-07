@@ -6,20 +6,16 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-import path from 'path';
+import 'dotenv/config'
 import { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { spawn } from 'child_process';
 import { resolveHtmlPath } from './util';
-
-class AppUpdater {
-  constructor() {
-    log.transports.file.level = 'info';
-    autoUpdater.logger = log;
-    autoUpdater.checkForUpdatesAndNotify();
-  }
-}
+import path from 'path';
+import { Howl } from 'howler';
+import fs from 'fs';
+import player from 'sound-play';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -28,10 +24,28 @@ const SOURCE_PATH = app.isPackaged
 ? path.join(process.resourcesPath)
 : path.join(__dirname, '../../');
 
-ipcMain.on('ipc-example', async (event, arg) => {
-  const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-  console.log(msgTemplate(arg));
-  event.reply('ipc-example', msgTemplate('pong'));
+var sleepSound = new Howl({
+  src: [path.join(SOURCE_PATH, 'assets', 'sleep.mp3')]
+});
+
+const child = spawn('node', [path.join(SOURCE_PATH, 'src', 'main', 'background-listener', 'index.js')]);
+
+child.stderr.on('data', (data) => {
+  console.error(data.toString());
+});
+
+child.stdout.on('data', (data) => {
+  switch (data.toString()) {
+    case 'hotword-detected':
+      createWindow();
+      break;
+    case 'silent-prompt-detected':
+      mainWindow?.close();
+      break;
+    default:
+      mainWindow?.webContents.send('prompt-detected', { uint8Array: Uint8Array.from(data) });
+      break;
+  }
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -39,40 +53,23 @@ if (process.env.NODE_ENV === 'production') {
   sourceMapSupport.install();
 }
 
-const isDebug =
-  process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
-
-// if (isDebug) {
-//   require('electron-debug')();
-// }
-
-const installExtensions = async () => {
-  const installer = require('electron-devtools-installer');
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-  const extensions = ['REACT_DEVELOPER_TOOLS'];
-
-  return installer
-    .default(
-      extensions.map((name) => installer[name]),
-      forceDownload
-    )
-    .catch(console.log);
-};
-
 const createWindow = async () => {
-  // if (isDebug) {
-  //   await installExtensions();
-  // }
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    return;
+  }
+
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   mainWindow = new BrowserWindow({
     show: false,
     width: 300,
-    height: 210,
+    height: 180,
     x: width - 300 - 100,
     y: height - 210 - 100,
     frame: false,
     alwaysOnTop: true,
+    maximizable: false,
     icon: path.join(SOURCE_PATH, "assets", "icon.png"),
     webPreferences: {
       preload: app.isPackaged
@@ -82,6 +79,9 @@ const createWindow = async () => {
   });
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
+  mainWindow.webContents.openDevTools({
+    mode: 'detach',
+  });
 
   mainWindow.on('ready-to-show', () => {
     if (!mainWindow) {
@@ -96,6 +96,9 @@ const createWindow = async () => {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    child.stdin.write('stop-prompt-detecting');
+    child.stdin.write('stop-hotword-detecting');
+    child.stdin.write('start-hotword-detecting');
   });
 
   // Open urls in the user's browser
@@ -104,9 +107,12 @@ const createWindow = async () => {
     return { action: 'deny' };
   });
 
-  // Remove this if your app does not use auto updates
-  // eslint-disable-next-line
-  new AppUpdater();
+  mainWindow.on("show", () => {
+    mainWindow?.webContents.send('hotword-detected');
+  })
+
+  child.stdin.write('stop-hotword-detecting');
+  child.stdin.write('start-prompt-detecting');
 };
 
 const createTray = async () => {
@@ -126,29 +132,6 @@ const createTray = async () => {
   tray.setContextMenu(contextMenu);
 };
 
-const startHotwordDetecting = async () => {
-  const child = spawn('node', [path.join(SOURCE_PATH, 'src', 'main', 'hotword-detector.ts')]);
-  child.stdin.write('r');
-  child.stdout.on('data', (data) => {
-    switch (data.toString()) {
-      case 'y':
-        createWindow();
-        child.stdin.write('q');
-        break;
-      default:
-        console.log(data.toString());
-        break;
-    }
-  });
-  // child.stderr.on('data', (data) => {
-  //   console.log(data.toString());
-  // });
-};
-
-/**
- * Add event listeners...
- */
-
 // app.on('window-all-closed', () => {
 //   // Respect the OSX convention of having the application in memory even
 //   // after all windows have been closed
@@ -157,11 +140,15 @@ const startHotwordDetecting = async () => {
 //   }
 // });
 
+app.on("window-all-closed", (e: any) => {
+  e.preventDefault();
+});
+
 app
   .whenReady()
   .then(() => {
     createTray();
-    startHotwordDetecting();
+    child.stdin.write('start-hotword-detecting');
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.
