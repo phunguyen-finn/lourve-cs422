@@ -22,7 +22,7 @@ body {
   align-items: center;
 }
 
-button {
+button, a {
   background-color: white;
   padding: 10px 20px;
   border-radius: 10px;
@@ -34,6 +34,7 @@ button {
   transition: all ease-in 0.1s;
   cursor: pointer;
   opacity: 0.9;
+  -webkit-app-region: no-drag;
 }
 
 button:hover {
@@ -62,4 +63,20 @@ a:hover {
   justify-content: center;
   align-items: center;
   margin: 20px 0;
+}
+
+@keyframes fade {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.fade-in-out {
+  animation: fade 2s infinite;
 }

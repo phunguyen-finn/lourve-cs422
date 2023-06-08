@@ -10,8 +10,12 @@ export const createConversation = async () => {
 }
 
 export const askConversation = async (conversationId: string, audioForm: FormData) => {
-  const response = await axios.post(`/conversation/${conversationId}/ask`, audioForm, { headers: {
-    'Content-Type': 'multipart/form-data'
-  }});
+  const response = await axios({
+    method: "post",
+    url: `/conversation/${conversationId}/ask`,
+    data: audioForm,
+    headers: { "Content-Type": "multipart/form-data" },
+    responseType: "blob"
+  });
   return response.data;
 }

@@ -13,6 +13,8 @@ import log from 'electron-log';
 import { spawn } from 'child_process';
 import { resolveHtmlPath } from './util';
 import path from 'path';
+import { Howl, Howler } from 'howler';
+import fs from 'fs';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -20,6 +22,10 @@ let tray: Tray | null = null;
 const SOURCE_PATH = app.isPackaged
 ? path.join(process.resourcesPath)
 : path.join(__dirname, '../../');
+
+// var sleepSound = new Howl({
+//   src: [path.join(SOURCE_PATH, 'assets', 'sleep.mp3')]
+// });
 
 const child = spawn('node', [path.join(SOURCE_PATH, 'src', 'main', 'background-listener', 'index.js')]);
 
@@ -33,7 +39,10 @@ child.stdout.on('data', (data) => {
       createWindow();
       break;
     case 'silent-prompt-detected':
-      mainWindow?.close();
+      mainWindow?.webContents.send('silent-prompt-detected');
+      setTimeout(() => {
+        mainWindow?.close();
+      }, 3000);
       break;
     default:
       mainWindow?.webContents.send('prompt-detected', { uint8Array: Uint8Array.from(data) });
@@ -89,9 +98,9 @@ const createWindow = async () => {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
-    child.stdin.write('stop-prompt-detecting');
-    child.stdin.write('stop-hotword-detecting');
-    child.stdin.write('start-hotword-detecting');
+    child.stdin.write('stop-prompt-detecting%');
+    child.stdin.write('stop-hotword-detecting%');
+    child.stdin.write('start-hotword-detecting%');
   });
 
   // Open urls in the user's browser
@@ -100,12 +109,16 @@ const createWindow = async () => {
     return { action: 'deny' };
   });
 
+  ipcMain.on('prompt-answered', (event, arg) => {
+    child.stdin.write('start-prompt-detecting%');
+  });
+
   mainWindow.on("show", () => {
     mainWindow?.webContents.send('hotword-detected');
   })
 
-  child.stdin.write('stop-hotword-detecting');
-  child.stdin.write('start-prompt-detecting');
+  child.stdin.write('stop-hotword-detecting%');
+  child.stdin.write('start-prompt-detecting%');
 };
 
 const createTray = async () => {
@@ -141,7 +154,7 @@ app
   .whenReady()
   .then(() => {
     createTray();
-    child.stdin.write('start-hotword-detecting');
+    child.stdin.write('start-hotword-detecting%');
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.

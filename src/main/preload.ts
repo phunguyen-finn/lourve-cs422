@@ -2,17 +2,14 @@
 /* eslint no-unused-vars: off */
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
-export type Channels = 'prompt-detected' | 'hotword-detected';
+export type Channels = 'prompt-detected' | 'hotword-detected' | 'silent-prompt-detected';
 
 const electronHandler = {
   ipcRenderer: {
-    on(channel: Channels, func: (...args: unknown[]) => void) {
-      const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
-        func(...args);
-      ipcRenderer.on(channel, subscription);
-
+    on(channel: Channels, func: (_event: IpcRendererEvent, ...args: unknown[]) => void) {
+      ipcRenderer.on(channel, func);
       return () => {
-        ipcRenderer.removeListener(channel, subscription);
+        ipcRenderer.removeListener(channel, func);
       };
     }
   },

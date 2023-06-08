@@ -97,11 +97,13 @@
   "dependencies": {
     "@picovoice/porcupine-node": "^2.2.0",
     "@picovoice/pvrecorder-node": "^1.1.2",
+    "@types/howler": "^2.2.7",
     "axios": "^1.4.0",
     "dotenv": "^16.1.4",
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.8",
     "electron-updater": "^5.3.0",
+    "howler": "^2.2.3",
     "math": "^0.0.3",
     "minimalist": "^1.0.0",
     "node-record-lpcm16": "^1.0.1",

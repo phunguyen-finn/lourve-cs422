@@ -1,22 +1,92 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import idleImg from '../../assets/idle.gif';
 import talkingImg from '../../assets/talking.gif';
-import { useState, useEffect } from 'react';
+import wakeUpSound from '../../assets/wake_up.mp3';
+import sleepSound from '../../assets/sleep.mp3';
+import { useRef, useState, useEffect } from 'react';
 import './App.css';
 import { FaMicrophone } from 'react-icons/fa';
 import { askConversation, createConversation } from './api';
+import { Howl } from 'howler';
 
-function Hello() {
+function Mainscreen() {
+  const conversationId = useRef<string>("");
+  const [isThinking, setIsThinking] = useState<Boolean>(false);
+  const [isTalking, setIsTalking] = useState<Boolean>(false);
+
+  useEffect(() => {
+    window.electron.ipcRenderer.on('hotword-detected', async (event, _arg: any) => {
+      setIsTalking(false);
+      new Howl({
+        src: [wakeUpSound],
+        format: ['mp3'],
+      }).play();
+    });
+
+    window.electron.ipcRenderer.on('prompt-detected', async (event, arg: any) => {
+      new Howl({
+        src: [sleepSound],
+        format: ['mp3'],
+      }).play();
+
+      setIsThinking(true);
+
+      let _conversation = conversationId.current;
+      if (_conversation === '') {
+        _conversation = (await createConversation()).id;
+        conversationId.current = _conversation;
+      }
+
+      const formData = new FormData();
+      formData.append('audio_file', new Blob([arg.uint8Array], { type: 'audio/wav' }), 'audio.wav');
+
+      let response = await askConversation(_conversation, formData);
+      const sound = new Howl({
+        src: [URL.createObjectURL(response)],
+        format: ['wav'],
+        onend: function () {
+          setIsTalking(false);
+          setTimeout(() => {
+            event.sender.send('prompt-answered');
+            new Howl({
+              src: [sleepSound],
+              format: ['mp3'],
+            }).play();
+          }, 2000);
+        },
+        onplay: function () {
+          setIsTalking(true);
+        },
+      });
+
+      setIsThinking(false);
+      sound.play();
+    });
+
+    window.electron.ipcRenderer.on('silent-prompt-detected', async (event, _arg: any) => {
+      const sound = new Howl({
+        src: [sleepSound],
+        format: ['mp3'],
+        onend: function () {
+          setIsTalking(false);
+        },
+      });
+      sound.play();
+    });
+  }, []);
+
+
   return (
     <>
       <div
         style={{
-          backgroundImage: `url(${idleImg})`,
+          backgroundImage: `url(${isTalking? talkingImg : idleImg})`,
           width: '100vw',
           height: '100vh',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           position: 'relative',
+          filter: `${isThinking ? "blur(5px) brightness(0.85)" : ""}`,
         }}
       ></div>
       <div
@@ -33,33 +103,24 @@ function Hello() {
       >
         <FaMicrophone style={{ marginRight: 10 }} /> Doraemon
       </div>
+      { isThinking && <div className='fade-in-out' style={{
+          position: 'absolute',
+          top: 40,
+          right: 40,
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+        }}> Lemme think.. </div>}
     </>
   );
 }
 
 export default function App() {
-  const [conversationId, setConversationId] = useState<string>('');
-
-  useEffect(() => {
-    window.electron.ipcRenderer.on('hotword-detected', async (_arg: any) => {
-      if (conversationId) return;
-      console.log('hotword detected');
-      setConversationId(await createConversation());
-    });
-
-    window.electron.ipcRenderer.on('prompt-detected', async (arg: any) => {
-      console.log(arg);
-      const formData = new FormData();
-      formData.append('audio_file', arg.uint8Array);
-      const response = await askConversation(conversationId, formData);
-      console.log(response);
-    });
-  }, []);
 
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Hello />} />
+        <Route path="/" element={<Mainscreen />} />
       </Routes>
     </Router>
   );
