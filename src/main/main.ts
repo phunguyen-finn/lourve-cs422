@@ -8,13 +8,9 @@
  */
 import 'dotenv/config'
 import { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen } from 'electron';
-import { autoUpdater } from 'electron-updater';
-import log from 'electron-log';
 import { spawn } from 'child_process';
 import { resolveHtmlPath } from './util';
 import path from 'path';
-import { Howl, Howler } from 'howler';
-import fs from 'fs';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;

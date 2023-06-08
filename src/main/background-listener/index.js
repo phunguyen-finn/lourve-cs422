@@ -43,7 +43,7 @@ process.stdin.on('data', async (data) => {
         backgroundListenterController.clean();
         process.exit(0);
       default:
-        process.stdout.write(`Unknown command: ${data.toString()}`);
+        process.stderr.write(`Unknown command: ${data.toString()}`);
         break;
     }
   }
