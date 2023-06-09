@@ -95,6 +95,9 @@
     }
   },
   "dependencies": {
+    "@mui/icons-material": "^5.11.16",
+    "@mui/material": "^5.13.4",
+    "@mui/styles": "^5.13.2",
     "@picovoice/porcupine-node": "^2.2.0",
     "@picovoice/pvrecorder-node": "^1.1.2",
     "axios": "^1.4.0",
@@ -108,6 +111,7 @@
     "node-record-lpcm16": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hook-form": "^7.44.3",
     "react-icons": "^4.9.0",
     "react-router-dom": "^6.8.1",
     "wav": "^1.0.2"

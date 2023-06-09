@@ -8,6 +8,8 @@ import './App.css';
 import { FaMicrophone } from 'react-icons/fa';
 import { askConversation, createConversation } from './api';
 import { Howl } from 'howler';
+import { LoginPage } from './pages/login-pages/LoginPage';
+import { SignUpPage } from './pages/signup-pages/SignUpPage';
 
 function Mainscreen() {
   const conversationId = useRef<string>("");
@@ -120,7 +122,9 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Mainscreen />} />
+        {/* <Route path="/" element={<Mainscreen />} /> */}
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
       </Routes>
     </Router>
   );
