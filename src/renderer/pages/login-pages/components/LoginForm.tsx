@@ -60,17 +60,29 @@ const fields:Array<InputProps> = [
     }
 ]
 
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
+  props,
+  ref,
+) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+
 export const LoginForm: React.FC = () => {
     const classes = useStyles();
     const btnstyle = { margin: '8px 0' }
     const [showPassword, setShowPassword] = React.useState(false);
     const [isSigningIn, setIsSigningIn] = React.useState(false);
+    const [error, setError] = React.useState(false);
 
     const { handleSubmit, control } = useForm<Inputs>();
     const onSubmit: SubmitHandler<Inputs> = (data) => {
         console.log(data);
         setIsSigningIn(true);
         // TODO: Add login logic here
+        // Get response from server
+        // If success, redirect to home page
+        // If fail, show error message by setError(true)
+        setError(true);
         setIsSigningIn(false);
     };
 
@@ -78,6 +90,14 @@ export const LoginForm: React.FC = () => {
 
     const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
+    };
+
+    const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') {
+        return;
+        }
+
+        setError(false);
     };
 
     return (
@@ -148,6 +168,12 @@ export const LoginForm: React.FC = () => {
                 </Typography>
                 </Grid>
             </Grid>
+            <Snackbar open={error} autoHideDuration={6000} onClose={handleClose}>
+                <Alert onClose={handleClose} severity="error" sx={{ width: '100%' }}>
+                    <AlertTitle>Error</AlertTitle>
+                     Login error — <strong>check it out!</strong>
+                </Alert>
+            </Snackbar>
         </Grid>
     )
 }
