@@ -6,24 +6,46 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-import 'dotenv/config'
-import { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen } from 'electron';
+import 'dotenv/config';
+import {
+  app,
+  BrowserWindow,
+  shell,
+  ipcMain,
+  Tray,
+  Menu,
+  screen,
+} from 'electron';
 import { spawn } from 'child_process';
 import { resolveHtmlPath } from './util';
 import path from 'path';
+import Store from 'electron-store';
+
+const store = new Store();
+
+// IPC listener
+ipcMain.on('electron-store-get', async (event, val) => {
+  event.returnValue = store.get(val);
+});
+ipcMain.on('electron-store-set', async (event, key, val) => {
+  store.set(key, val);
+});
 
 let mainWindow: BrowserWindow | null = null;
+let accountWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
 const SOURCE_PATH = app.isPackaged
-? path.join(process.resourcesPath)
-: path.join(__dirname, '../../');
+  ? path.join(process.resourcesPath)
+  : path.join(__dirname, '../../');
 
 // var sleepSound = new Howl({
 //   src: [path.join(SOURCE_PATH, 'assets', 'sleep.mp3')]
 // });
 
-const child = spawn('node', [path.join(SOURCE_PATH, 'src', 'main', 'background-listener', 'index.js')]);
+const child = spawn('node', [
+  path.join(SOURCE_PATH, 'src', 'main', 'background-listener', 'index.js'),
+]);
 
 child.stderr.on('data', (data) => {
   console.error(data.toString());
@@ -41,7 +63,9 @@ child.stdout.on('data', (data) => {
       }, 3000);
       break;
     default:
-      mainWindow?.webContents.send('prompt-detected', { uint8Array: Uint8Array.from(data) });
+      mainWindow?.webContents.send('prompt-detected', {
+        uint8Array: Uint8Array.from(data),
+      });
       break;
   }
 });
@@ -51,10 +75,47 @@ if (process.env.NODE_ENV === 'production') {
   sourceMapSupport.install();
 }
 
-const createWindow = async () => {
+const createAccountWindow = async (force: boolean = false) => {
   const windows = BrowserWindow.getAllWindows();
   if (windows.length > 0) {
-    return;
+    if (force) {
+      windows.forEach((window) => {
+        window.close();
+      });
+    } else {
+      return;
+    }
+  }
+
+  accountWindow = new BrowserWindow({
+    show: false,
+    width: 800,
+    height: 600,
+    icon: path.join(SOURCE_PATH, 'assets', 'icon.png'),
+    webPreferences: {
+      preload: app.isPackaged
+        ? path.join(__dirname, 'preload.js')
+        : path.join(__dirname, '../../.erb/dll/preload.js'),
+    },
+  });
+
+  accountWindow.loadURL(`${resolveHtmlPath('index.html')}#/account`);
+
+  accountWindow.on('ready-to-show', () => {
+    accountWindow?.show();
+  });  
+};
+
+const createWindow = async (force: boolean = false) => {
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    if (force) {
+      windows.forEach((window) => {
+        window.close();
+      });
+    } else {
+      return;
+    }
   }
 
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -68,7 +129,7 @@ const createWindow = async () => {
     frame: false,
     alwaysOnTop: true,
     maximizable: false,
-    icon: path.join(SOURCE_PATH, "assets", "icon.png"),
+    icon: path.join(SOURCE_PATH, 'assets', 'icon.png'),
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
@@ -76,7 +137,7 @@ const createWindow = async () => {
     },
   });
 
-  mainWindow.loadURL(resolveHtmlPath('index.html'));
+  mainWindow.loadURL(`${resolveHtmlPath('index.html')}#/main`);
   mainWindow.webContents.openDevTools({
     mode: 'detach',
   });
@@ -85,11 +146,7 @@ const createWindow = async () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
-    if (process.env.START_MINIMIZED) {
-      mainWindow.minimize();
-    } else {
       mainWindow.show();
-    }
   });
 
   mainWindow.on('closed', () => {
@@ -109,20 +166,20 @@ const createWindow = async () => {
     child.stdin.write('start-prompt-detecting%');
   });
 
-  mainWindow.on("show", () => {
+  mainWindow.on('show', () => {
     mainWindow?.webContents.send('hotword-detected');
-  })
+  });
 
   child.stdin.write('stop-hotword-detecting%');
   child.stdin.write('start-prompt-detecting%');
 };
 
 const createTray = async () => {
-  tray = new Tray(path.join(SOURCE_PATH, "assets", "icon.png"));
+  tray = new Tray(path.join(SOURCE_PATH, 'assets', 'icon.png'));
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Ask', click: () => console.log('Clicked Ask') },
-    { label: 'Settings', click: () => console.log('Clicked Settings') },
+    { label: 'Ask', click: () => createWindow(true) },
+    { label: 'Account', click: () => createAccountWindow(true) },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]);
@@ -142,7 +199,7 @@ const createTray = async () => {
 //   }
 // });
 
-app.on("window-all-closed", (e: any) => {
+app.on('window-all-closed', (e: any) => {
   e.preventDefault();
 });
 
