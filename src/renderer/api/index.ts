@@ -6,8 +6,7 @@ const BASE_URL = 'https://virtual-assistant-api.onrender.com/';
 
 axios.interceptors.request.use((req: any) => {
   const token = store.get('token');
-  console.log(token);
-  req.headers.authorization = `Bearer ${token}`;
+  if (token) req.headers.authorization = `Bearer ${token}`;
   return req;
 });
 
