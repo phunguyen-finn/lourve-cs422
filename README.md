@@ -21,14 +21,19 @@
 </div>
 
 ## Install
+Firstly, you need to install `sox` version 14.4.1 using the following [download link](https://sourceforge.net/projects/sox/files/sox/14.4.1/).
+After installing, make sure to add the `sox` folder into the `PATH` in System Variables (for Windows).
 
-Clone the repo and install dependencies:
+Then, clone the repo and install dependencies:
 
 ```bash
-git clone --depth 1 --branch main https://github.com/electron-react-boilerplate/electron-react-boilerplate.git your-project-name
-cd your-project-name
-npm install
+git clone https://github.com/nnphongphu/cs422-client.git
+cd cs422-client
+npm install --force
 ```
+**Note:** If the npm install --force got error, consider to download the following to file: 
+- [doraemon idle](https://drive.google.com/file/d/1byCj1AJf8AljwzY7dJ_XFD2xuqsmGk2L/view): add to assets folder
+- [hot-word detector model](https://drive.google.com/file/d/1zcYDADtpw8mIrosKwaboOj0dK1hvAw6i/view): add to model folder
 
 **Having issues installing? See our [debugging guide](https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues/400)**
 
