@@ -160,7 +160,7 @@ export const SignUpForm: React.FC = () => {
 
             <Typography sx={{display: "flex", flexDirection: "row"}}>
                 <p style={{color: "black", marginBottom: "5px", height: "fit-content"}}>Already have an account ?</p>
-                <Link to="/" className={classes.footerGrid}>
+                <Link to="/account" className={classes.footerGrid}>
                     Sign In
                 </Link>
             </Typography>

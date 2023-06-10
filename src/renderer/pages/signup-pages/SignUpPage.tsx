@@ -4,6 +4,8 @@ import { CardMedia, Grid } from "@mui/material";
 import { Card } from "@mui/material";
 import { SignUpForm } from "./components/SignUpForm";
 import doraemonBackground from "../../../../assets/doraemon-background.jpg";
+import { useEffect } from "react";
+import store from "renderer/store";
 
 const useStyles = makeStyles(() => ({
     root: {
@@ -17,6 +19,7 @@ const useStyles = makeStyles(() => ({
 
 export const SignUpPage: React.FC = () => {
     const classes = useStyles();
+
     return (
         <Grid container className={classes.root}>
             <Grid item xs={6}>
